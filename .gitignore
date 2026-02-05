@@ -39,3 +39,12 @@ dist/
 *~
 *.swp
 *.bak
+
+*.scss
+*.less
+
+bower.json
+.bower.json
+bower_components/
+
+font-awesome*
