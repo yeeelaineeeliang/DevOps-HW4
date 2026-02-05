@@ -27,24 +27,18 @@ pipeline {
 
         stage('Package Artifact') {
             steps {
-                script {
-                    def sha = readFile('.gitsha').trim()
-                    def artifactName = "${APP_NAME}-${env.BRANCH_NAME}-${env.BUILD_NUMBER}-${sha}.zip"
-                    sh """
-                      rm -rf dist
-                      mkdir -p dist
-                      zip -r "dist/${artifactName}" app database requirements.txt Dockerfile docker-compose.yml Jenkinsfile README.md pytest.ini sonar-project.properties || true
-                    """
-                    echo "Created artifact: dist/${artifactName}"
-                }
+                sh '''
+                rm -rf dist
+                mkdir -p dist
+                zip -r dist/library-management-${BRANCH_NAME}-${BUILD_NUMBER}.zip app database requirements.txt Jenkinsfile README.md
+                '''
             }
         }
 
         stage('Archive Artifact') {
             steps {
-                archiveArtifacts artifacts: 'dist/*.zip', fingerprint: true
+                archiveArtifacts artifacts: 'dist/*.zip', followSymlinks: false
             }
-        }
 
         stage('Deploy') {
             when { branch 'main' }
