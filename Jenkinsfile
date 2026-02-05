@@ -19,6 +19,16 @@ pipeline {
             }
         }
 
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                python3 -m pip install --upgrade pip
+                pip3 install -r requirements.txt
+                pip3 install pytest
+                '''
+            }
+        }
+
         stage('Test') {
             steps {
                 sh 'pytest'
@@ -27,20 +37,28 @@ pipeline {
 
         stage('Package Artifact') {
             steps {
-                sh '''
-                rm -rf dist
-                mkdir -p dist
-                zip -r dist/library-management-${BRANCH_NAME}-${BUILD_NUMBER}.zip app database requirements.txt Jenkinsfile README.md
-                '''
+                script {
+                    def sha = readFile('.gitsha').trim()
+                    def safeBranch = env.BRANCH_NAME.replaceAll('/', '-')
+                    def artifactName = "${APP_NAME}-${safeBranch}-${env.BUILD_NUMBER}-${sha}.tar.gz"
+
+                    sh """
+                    rm -rf dist
+                    mkdir -p dist
+                    tar -czf "dist/${artifactName}" app database requirements.txt Dockerfile docker-compose.yml Jenkinsfile README.md pytest.ini sonar-project.properties
+                    """
+
+                    echo "Created artifact: dist/${artifactName}"
+                }
             }
         }
 
         stage('Archive Artifact') {
             steps {
-                archiveArtifacts artifacts: 'dist/*.zip', followSymlinks: false
+                archiveArtifacts artifacts: 'dist/*.tar.gz', followSymlinks: false
             }
         }
-
+        
         stage('Deploy') {
             when {
                 branch 'main'
