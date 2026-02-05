@@ -19,14 +19,13 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+         stage('Install Dependencies') {
             steps {
                 sh '''
-                python3 -m venv .venv
-                . .venv/bin/activate
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
-                pip install pytest
+                    # Use system Python (no venv needed for CI)
+                    python3 -m pip install --user --upgrade pip
+                    python3 -m pip install --user -r requirements.txt
+                    python3 -m pip install --user pytest
                 '''
             }
         }
@@ -49,9 +48,18 @@ pipeline {
                     def artifactName = "${APP_NAME}-${safeBranch}-${env.BUILD_NUMBER}-${sha}.tar.gz"
 
                     sh """
-                    rm -rf dist
-                    mkdir -p dist
-                    tar -czf "dist/${artifactName}" app database requirements.txt Dockerfile docker-compose.yml Jenkinsfile README.md pytest.ini sonar-project.properties
+                        rm -rf dist
+                        mkdir -p dist
+                        tar -czf "dist/${artifactName}" \
+                            app \
+                            database \
+                            requirements.txt \
+                            Dockerfile \
+                            docker-compose.yml \
+                            Jenkinsfile \
+                            README.md \
+                            pytest.ini \
+                            sonar-project.properties
                     """
 
                     echo "Created artifact: dist/${artifactName}"
@@ -62,6 +70,7 @@ pipeline {
         stage('Archive Artifact') {
             steps {
                 archiveArtifacts artifacts: 'dist/*.tar.gz', followSymlinks: false
+                echo "Artifact archived in Jenkins"
             }
         }
 
