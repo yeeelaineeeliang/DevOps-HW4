@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         APP_NAME = "library-management"
+        VERSION_BASE = "1.0"
+        VENV_DIR = ".venv"     
     }
 
     stages {
