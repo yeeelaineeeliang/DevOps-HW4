@@ -35,13 +35,46 @@ pipeline {
             }
         }
 
+        stage('Start Postgres (CI)') {
+            steps {
+                sh '''
+                set -euxo pipefail
+
+                # Start postgres container for tests
+                docker rm -f ci-postgres || true
+                docker run -d --name ci-postgres \
+                    -e POSTGRES_DB=library_test \
+                    -e POSTGRES_USER=postgres \
+                    -e POSTGRES_PASSWORD=postgres \
+                    -p 5432:5432 \
+                    postgres:16
+
+                # Wait until ready
+                for i in $(seq 1 30); do
+                    docker exec ci-postgres pg_isready -U postgres && break
+                    sleep 1
+                done
+                '''
+            }
+            }
+
         stage('Test') {
+            environment {
+                DATABASE_URL = 'postgresql+psycopg2://postgres:postgres@localhost:5432/library_test'
+                FLASK_ENV = 'testing'
+            }
             steps {
                 sh '''
                 set -euxo pipefail
                 . .venv/bin/activate
                 pytest -q
                 '''
+            }
+        }
+
+        post {
+            always {
+                sh 'docker rm -f ci-postgres || true'
             }
         }
 
