@@ -22,18 +22,24 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                python3 -m pip install --upgrade pip
-                pip3 install -r requirements.txt
-                pip3 install pytest
+                python3 -m venv .venv
+                . .venv/bin/activate
+                python -m pip install --upgrade pip
+                pip install -r requirements.txt
+                pip install pytest
                 '''
             }
         }
 
         stage('Test') {
             steps {
-                sh 'pytest'
+                sh '''
+                . .venv/bin/activate
+                pytest -q
+                '''
             }
         }
+
 
         stage('Package Artifact') {
             steps {
@@ -58,7 +64,7 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/*.tar.gz', followSymlinks: false
             }
         }
-        
+
         stage('Deploy') {
             when {
                 branch 'main'
