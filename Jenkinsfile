@@ -39,9 +39,12 @@ pipeline {
             steps {
                 archiveArtifacts artifacts: 'dist/*.zip', followSymlinks: false
             }
+        }
 
         stage('Deploy') {
-            when { branch 'main' }
+            when {
+                branch 'main'
+            }
             steps {
                 echo 'Deploying application (main branch only)'
             }
