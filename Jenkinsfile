@@ -72,12 +72,6 @@ pipeline {
             }
         }
 
-        post {
-            always {
-                sh 'docker rm -f ci-postgres || true'
-            }
-        }
-
         stage('Package Artifact') {
             steps {
                 script {
@@ -124,7 +118,11 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline finished'
+        sh '''
+            set +e
+            docker rm -f "${PG_CONTAINER}" >/dev/null 2>&1 || true
+        '''
+        echo 'Pipeline finished'
         }
     }
 }
