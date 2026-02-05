@@ -105,7 +105,7 @@ def test_error_handling_missing_fields(api_ready):
     print("Missing title rejected")
     
     # test missing author
-    print("  → Testing missing author...")
+    print("Testing missing author...")
     incomplete_book = {
         "title": "Test Book",
         "isbn": "123-4567890124"
