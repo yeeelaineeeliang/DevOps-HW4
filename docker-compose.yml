@@ -1,0 +1,108 @@
+services:
+  db:
+    image: postgres:18
+    container_name: library-postgres
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: library_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d library_dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - library-network
+
+  app:
+    build: .
+    container_name: library-app
+    environment:
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://devuser:devpass@db:5432/library_dev
+    ports:
+      - "5001:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    command: python -m flask run --host=0.0.0.0 --port=5000
+    networks:
+      - library-network
+
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: library-jenkins
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - library-network
+
+  # agent1 - testing
+  jenkins-agent-testing:
+    build:
+      context: ./jenkins/agent
+      dockerfile: Dockerfile
+    container_name: jenkins-agent-testing
+    user: root
+    privileged: true
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcGdvHpeI0X71GopTJN7ZhpsregnRLlfv758qyW3xO6VZGWMSwrcV2KuFfGkg0wIUS8m9JdRkkaThfb1rd9Rocj727KbcNvRzmJMkGMdagsC1vRjLZzx0JIcFU2Hac3cydPqwC+0JGTLlDmJZ+FQPfwP6BaoB7/vX203GJ4EykHm8BB8DBW88x3SgNO6qVPeDIH0IKve5PMAdogPksGd24I+/Z7hyddy5QXG1WbgPcBvBeR1CCliXxXfDhJCPp0/mKaU6uyCYxjpmQpF7Y7Lm9fCtqo8RThOlZCSrV5PYCEsq0TyWqzR7UP8ra7uVnjwxSSzvIGhneXvVnCInPXA7l yeelingliang@Elaines-Macbook.local
+
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    networks:
+      - library-network
+    depends_on:
+      - jenkins
+    expose:
+      - "22"
+
+  # agent2 - deploying
+  jenkins-agent-deployment:
+    build:
+      context: ./jenkins/agent
+      dockerfile: Dockerfile
+    container_name: jenkins-agent-deployment
+    user: root
+    privileged: true
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcGdvHpeI0X71GopTJN7ZhpsregnRLlfv758qyW3xO6VZGWMSwrcV2KuFfGkg0wIUS8m9JdRkkaThfb1rd9Rocj727KbcNvRzmJMkGMdagsC1vRjLZzx0JIcFU2Hac3cydPqwC+0JGTLlDmJZ+FQPfwP6BaoB7/vX203GJ4EykHm8BB8DBW88x3SgNO6qVPeDIH0IKve5PMAdogPksGd24I+/Z7hyddy5QXG1WbgPcBvBeR1CCliXxXfDhJCPp0/mKaU6uyCYxjpmQpF7Y7Lm9fCtqo8RThOlZCSrV5PYCEsq0TyWqzR7UP8ra7uVnjwxSSzvIGhneXvVnCInPXA7l yeelingliang@Elaines-Macbook.local
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    networks:
+      - library-network
+    depends_on:
+      - jenkins
+    expose:
+      - "22"
+
+volumes:
+  postgres_data:
+  jenkins_home:
+
+networks:
+  library-network:
+    driver: bridge
