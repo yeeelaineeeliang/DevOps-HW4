@@ -21,13 +21,16 @@ pipeline {
             }
         }
 
-         stage('Install Dependencies') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
-                    # Use system Python (no venv needed for CI)
-                    python3 -m pip install --user --upgrade pip
-                    python3 -m pip install --user -r requirements.txt
-                    python3 -m pip install --user pytest
+                set -euxo pipefail
+
+                python3 -m venv .venv
+                . .venv/bin/activate
+
+                python -m pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
@@ -35,12 +38,12 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
+                set -euxo pipefail
                 . .venv/bin/activate
                 pytest -q
                 '''
             }
         }
-
 
         stage('Package Artifact') {
             steps {
